@@ -38,3 +38,21 @@ data/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Secrets (DANGER)
+.env
+.env.*
+*.json
+*.jsonl
+*.key
+*.pem
+*.token
+*secrets*
+gh_token*
+openclaw.json
+config.local.yml
+.config/
+.ssh/
+.git-credentials
+gh_auth*
+

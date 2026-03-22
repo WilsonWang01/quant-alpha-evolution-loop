@@ -8,3 +8,14 @@
 | US (NVDA) | 5.96%| -5.48% | 0.97 | 1.09 |
 | Gold (GC=F) | 8.10%| -10.87% | 0.81 | 0.75 |
 | BTC (BTC-USD) | 1.08%| -7.37% | 0.16 | 0.15 |
+
+### 🧪 Alpha-V24+ (Institutional Build) 进化报告: 2026-03-22 14:17:14.180692
+- **逻辑对标**: Citadel 风险预算 + Two Sigma 波动率目标 + 机构级滑点模拟
+- **核心优化**: 引入 A股 流动性分层 (Top 30%) + 专家会诊审计机制
+- **核心指标**: 平均 Sharpe -8.27, 平均 Calmar nan, 最大 MDD -inf%
+| 资产 | Sharpe | Calmar | MDD | 专家审计 |
+|---|---|---|---|---|
+| A-Share (CSI300) | -6.41 | nan | -inf% | ❌ REJECT |
+| US (NVDA) | -9.15 | -1.00 | -100.00% | ❌ REJECT |
+| Gold (GC=F) | -7.78 | nan | -inf% | ❌ REJECT |
+| BTC (BTC-USD) | -9.75 | nan | -inf% | ❌ REJECT |

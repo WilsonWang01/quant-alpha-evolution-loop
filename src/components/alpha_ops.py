@@ -30,3 +30,14 @@ class FormulaicAlphaGen:
         volatility = data['Close'].rolling(20).std()
         alpha = self.rank(turnover / volatility)
         return alpha
+
+    def apply_liquidity_layering(self, data, threshold=0.3):
+        """
+        Specialized filtering for A-Share liquidity traps.
+        Only allows trading on symbols in the top 30% of turnover.
+        Inspired by researcher_a's expert feedback.
+        """
+        turnover = data['Volume'] * data['Close']
+        turnover_rank = self.rank(turnover)
+        data['liquidity_mask'] = turnover_rank > (1 - threshold)
+        return data

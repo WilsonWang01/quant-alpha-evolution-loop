@@ -75,7 +75,7 @@ def backtest_alpha_v24_institutional(name, symbol, target_vol=0.12):
         change = abs(df['Position'].iloc[i] - (df['Position'].iloc[i-1] if i > 0 else 0))
         # Assume $1M theoretical AUM for impact simulation
         order_size = change * 1000000 
-        impact = slippage_engine.estimate_impact(order_size, df['Volume'].iloc[i], df['Daily_Vol_Value'].iloc[i])
+        impact = slippage_engine.estimate_impact(order_size, df['Volume'].iloc[i], df['Daily_Vol_Value'].iloc[i], close.iloc[i])
         impacts.append(impact if not np.isnan(impact) else 0.0005)
         
     df['Impact_Cost'] = impacts

@@ -11,9 +11,9 @@ A quantitative strategy evolution and backtesting engine for multi-asset classes
 
 ## Strategy Performance Targets (Institutional Grade)
 
-- **Sharpe Ratio**: > 1.5
-- **Calmar Ratio**: > 1.5
-- **Max Drawdown**: < 12%
+- **Sharpe Ratio**: > 2.0
+- **Calmar Ratio**: > 2.5
+- **Max Drawdown**: < 8.0%
 
 ## Asset Classes
 

@@ -89,9 +89,10 @@ def run_evolution_loop():
     version = "Alpha-V34+ (Deep RL Portfolio)"
     print(f"🦞 [2026-03-23] 启动【量化进化 Loop】 - {version} 核心回测中...")
     
+    # 标的无关化 (Asset-Agnostic): 移除单一强势股(如NVDA)，切换为宽基指数与宏观资产
     targets = {
         "A-Share (CSI300)": "000300.SS",
-        "US (NVDA)": "NVDA",
+        "US Market (SPY)": "SPY",
         "Gold (GC=F)": "GC=F",
         "BTC (BTC-USD)": "BTC-USD"
     }

@@ -31,11 +31,45 @@ class FactorNeutralizer:
         return alpha_returns, beta
 
     @staticmethod
-    def scale_to_unit_exposure(weights):
+    def cross_sectional_neutralize(alpha_series, group_series=None):
         """
-        Ensures weights sum to 1 (long-only) or neutralizes dollar exposure.
+        Standardizes alpha and de-means it.
+        If group_series (industry/sector) is provided, de-means within each group.
+        Equivalent to WorldQuant 101's 'indneutralize'.
         """
-        total = np.sum(np.abs(weights))
-        if total == 0:
-            return weights
-        return weights / total
+        if group_series is not None:
+            # Group-wise de-meaning: subtract the mean of the group from each element
+            alpha_series = alpha_series - alpha_series.groupby(group_series).transform('mean')
+        else:
+            # Global de-meaning
+            alpha_series = alpha_series - alpha_series.mean()
+        
+        # Scaling to unit variance (Z-Score)
+        std = alpha_series.std()
+        if std > 0:
+            alpha_series = alpha_series / std
+            
+        return alpha_series
+
+    @staticmethod
+    def style_neutralize(alpha_df, style_factors_df):
+        """
+        Removes style exposures (e.g., Size, Value, Vol) via cross-sectional regression.
+        Alpha_resid = Alpha - (B_size * Size + B_vol * Vol + ...)
+        Benchmarked against Citadel/Two Sigma multi-factor risk models.
+        """
+        # Ensure indices align
+        common_idx = alpha_df.index.intersection(style_factors_df.index)
+        y = alpha_df.loc[common_idx].values
+        X = style_factors_df.loc[common_idx].values
+        
+        # Add intercept for de-meaning
+        X = np.column_stack([np.ones(X.shape[0]), X])
+        
+        # Solve OLS: Beta = (X'X)^-1 X'y
+        try:
+            beta = np.linalg.lstsq(X, y, rcond=None)[0]
+            residuals = y - X.dot(beta)
+            return pd.Series(residuals, index=common_idx)
+        except np.linalg.LinAlgError:
+            return alpha_df

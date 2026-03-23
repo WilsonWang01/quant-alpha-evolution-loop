@@ -1,9 +1,35 @@
 import numpy as np
 
 class RiskEngine:
-    def __init__(self, max_drawdown_limit=0.15, var_limit=0.05):
+    def __init__(self, max_drawdown_limit=0.15, var_limit=0.05, max_weight_limit=0.05):
         self.max_drawdown_limit = max_drawdown_limit
         self.var_limit = var_limit
+        self.max_weight_limit = max_weight_limit  # Citadel-style: 5% cap per asset
+
+    def apply_concentration_caps(self, target_weights, sector_mapping=None, max_sector_limit=0.20):
+        """
+        Adjusts target weights to respect institutional constraints.
+        1. Max Weight per Ticker (e.g., 5%)
+        2. Max Weight per Sector (e.g., 20%)
+        """
+        # Step 1: Max Individual Weight
+        capped_weights = np.minimum(target_weights, self.max_weight_limit)
+        
+        # Step 2: Max Sector Weight (if sector mapping exists)
+        if sector_mapping is not None:
+            sector_totals = capped_weights.groupby(sector_mapping).transform('sum')
+            # If a sector exceeds 20%, scale down its components proportionally
+            scaling_factor = np.where(sector_totals > max_sector_limit, 
+                                     max_sector_limit / sector_totals, 
+                                     1.0)
+            capped_weights = capped_weights * scaling_factor
+            
+        # Step 3: Re-normalize if necessary (keep within 1.0)
+        total_sum = np.sum(capped_weights)
+        if total_sum > 1.0:
+            capped_weights = capped_weights / total_sum
+            
+        return capped_weights
 
     def check_portfolio_risk(self, nav_series):
         """

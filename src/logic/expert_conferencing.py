@@ -9,7 +9,7 @@ class ExpertConferencing:
         self.experts = ["researcher_a", "researcher_crypto", "risk_officer"]
         self.consensus_log = "logs/expert_consensus.log"
 
-    def audit_strategy(self, strategy_name, metrics):
+    def audit_strategy(self, strategy_name, metrics, weights=None):
         """
         Simulated expert会诊 logic.
         """
@@ -19,11 +19,17 @@ class ExpertConferencing:
             "expert_feedback": []
         }
         
-        # Risk Officer Feedback
-        if metrics['mdd'] > 0.15:
-            audit_report['expert_feedback'].append({"expert": "risk_officer", "opinion": "REJECT: MDD exceeds institutional limit (15%)"})
+        # Risk Officer Feedback: MDD Limit
+        if metrics['mdd'] > 0.12:  # Tightened from 0.15 to 0.12 (Wilson's preference)
+            audit_report['expert_feedback'].append({"expert": "risk_officer", "opinion": "REJECT: MDD exceeds professional redline (12%)"})
         else:
             audit_report['expert_feedback'].append({"expert": "risk_officer", "opinion": "PASS: Drawdown is within professional boundaries"})
+
+        # Citadel-style Concentration Limit
+        if weights is not None:
+            max_weight = max(weights.values()) if isinstance(weights, dict) else max(weights)
+            if max_weight > 0.30:
+                audit_report['expert_feedback'].append({"expert": "risk_officer", "opinion": f"REJECT: Concentration risk too high ({max_weight:.2%}). Limit is 30%."})
 
         # A-Share Specialist Feedback
         if "A-Share" in strategy_name and metrics['sharpe'] < 0.3:

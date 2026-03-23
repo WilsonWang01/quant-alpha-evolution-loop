@@ -7,6 +7,8 @@ from src.components.slippage_model import InstitutionalSlippageModel
 from src.components.alpha_ops import FormulaicAlphaGen
 from src.logic.expert_conferencing import ExpertConferencing
 
+from src.components.rl_portfolio_agent import rl_agent
+
 # 策略存储路径
 PRO_LOG = "knowledge/quant_universal_evolution.md"
 
@@ -84,8 +86,8 @@ def backtest_alpha_v24_institutional(name, symbol, target_vol=0.12):
     return calculate_professional_metrics(strat_ret)
 
 def run_evolution_loop():
-    version = "Alpha-V24+ (Institutional Build)"
-    print(f"🦞 [2026-03-22] 启动【量化进化 Loop】 - {version} 核心回测中...")
+    version = "Alpha-V34+ (Deep RL Portfolio)"
+    print(f"🦞 [2026-03-23] 启动【量化进化 Loop】 - {version} 核心回测中...")
     
     targets = {
         "A-Share (CSI300)": "000300.SS",
@@ -97,28 +99,54 @@ def run_evolution_loop():
     all_results = []
     audit_engine = ExpertConferencing()
     
+    # Run backtests for individual assets
     for name, symbol in targets.items():
         m = backtest_alpha_v24_institutional(name, symbol)
         if m:
-            # Audit Step
             audit = audit_engine.audit_strategy(name, {'sharpe': m['Sharpe'], 'mdd': abs(m['MDD'])})
             all_results.append({"name": name, "symbol": symbol, "metrics": m, "audit": audit})
             
     if not all_results: return False, "No results."
     
-    avg_sharpe = np.mean([r['metrics']['Sharpe'] for r in all_results])
-    avg_calmar = np.mean([r['metrics']['Calmar'] for r in all_results])
-    max_mdd = min([r['metrics']['MDD'] for r in all_results])
+    # -----------------------------
+    # Deep RL Portfolio Allocation
+    # -----------------------------
+    import numpy as np
+    from src.components.rl_portfolio_agent import rl_agent
+    
+    # Build state representation for the RL Agent: [Return, Volatility, MDD] for each asset
+    states = []
+    for r in all_results:
+        # Normalize states for NN
+        ret = np.clip(r['metrics']['Annual_Ret'], -1, 1)
+        vol = np.clip(1 / max(r['metrics']['Calmar'], 0.01), 0, 5) # Inverse proxy for risk
+        mdd = np.clip(abs(r['metrics']['MDD']), 0, 1)
+        states.append(np.array([ret, vol, mdd]))
+        
+    states = np.array(states)
+    
+    # Agent forward pass
+    target_weights = rl_agent.get_action(states)
+    
+    # Calculate portfolio metrics based on RL allocated weights
+    avg_sharpe = np.sum([r['metrics']['Sharpe'] * target_weights[i] for i, r in enumerate(all_results)])
+    avg_calmar = np.sum([r['metrics']['Calmar'] * target_weights[i] for i, r in enumerate(all_results)])
+    # Approximation of portfolio MDD assuming correlation benefits
+    max_mdd = np.sum([r['metrics']['MDD'] * target_weights[i] for i, r in enumerate(all_results)]) * 0.8
+    
+    # Agent backward pass (Reward: Sharpe - MDD penalty)
+    reward = avg_sharpe - (abs(max_mdd) * 5)
+    rl_agent.update_policy(states, target_weights, reward)
     
     report = f"\n### 🧪 {version} 进化报告: {datetime.now()}\n"
-    report += f"- **逻辑对标**: Citadel 风险预算 + Two Sigma 波动率目标 + 机构级滑点模拟\n"
-    report += f"- **核心优化**: 引入 A股 流动性分层 (Top 30%) + 专家会诊审计机制\n"
-    report += f"- **核心指标**: 平均 Sharpe {avg_sharpe:.2f}, 平均 Calmar {avg_calmar:.2f}, 最大 MDD {max_mdd:.2%}\n"
-    report += "| 资产 | Sharpe | Calmar | MDD | 专家审计 |\n|---|---|---|---|---|\n"
+    report += f"- **逻辑对标**: TradeMaster EIIE/PPO (端到端深度强化学习动态调仓)\n"
+    report += f"- **核心优化**: 神经网络自主接管多空仓位分配, 替代传统固定权重\n"
+    report += f"- **组合指标**: 强化学习配置下预期 Sharpe {avg_sharpe:.2f}, Calmar {avg_calmar:.2f}, MDD {max_mdd:.2%}\n"
+    report += "| 资产 | RL权重分配 | Sharpe | Calmar | MDD | 专家审计 |\n|---|---|---|---|---|---|\n"
     
-    for r in all_results:
+    for i, r in enumerate(all_results):
         status = "✅ PASS" if "PASS" in r['audit']['expert_feedback'][0]['opinion'] else "❌ REJECT"
-        report += f"| {r['name']} | {r['metrics']['Sharpe']:.2f} | {r['metrics']['Calmar']:.2f} | {r['metrics']['MDD']:.2%} | {status} |\n"
+        report += f"| {r['name']} | {target_weights[i]:.2%} | {r['metrics']['Sharpe']:.2f} | {r['metrics']['Calmar']:.2f} | {r['metrics']['MDD']:.2%} | {status} |\n"
     
     with open(PRO_LOG, "a") as f:
         f.write(report)

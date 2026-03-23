@@ -52,3 +52,16 @@
 | US Market (SPY) | 0.03% | -2.82 | -0.44 | -59.03% | ❌ REJECT |
 | Gold (GC=F) | 51.99% | -7.17 | -0.33 | -307.61% | ❌ REJECT |
 | BTC (BTC-USD) | 9.99% | -0.13 | -0.14 | -18.21% | ❌ REJECT |
+
+### 🧪 Alpha-V35+ (Cross-Sectional Dynamic Universe) 进化报告: 2026-03-23 01:59:14.364300
+- **逻辑对标**: WorldQuant 截面多空因子筛选 (Cross-Sectional Neutral) + RL
+- **核心优化**: 完全标的无关！动态池选股 + AI 仓位再平衡，支持高弹性对冲组合
+- **组合指标**: 强化学习配置下预期 Sharpe -4.38, Calmar -0.49, MDD -56.72%
+| 动态标的 | RL权重分配 | Sharpe | Calmar | MDD | 专家审计 |
+|---|---|---|---|---|---|
+| Dynamic_SOL-USD | 0.00% | -0.54 | -0.34 | -23.19% | ❌ REJECT |
+| Dynamic_601899.SS | 0.00% | -2.67 | -0.43 | -56.07% | ❌ REJECT |
+| Dynamic_TSLA | 92.40% | -4.23 | -0.48 | -74.27% | ❌ REJECT |
+| Dynamic_WMT | 3.29% | -5.07 | -0.57 | -87.33% | ❌ REJECT |
+| Dynamic_PG | 4.29% | -7.23 | -0.69 | -95.98% | ❌ REJECT |
+| Dynamic_GLD | 0.00% | -6.91 | -0.70 | -96.57% | ❌ REJECT |

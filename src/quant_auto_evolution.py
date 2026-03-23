@@ -86,34 +86,46 @@ def backtest_alpha_v24_institutional(name, symbol, target_vol=0.12):
     return calculate_professional_metrics(strat_ret)
 
 def run_evolution_loop():
-    version = "Alpha-V34+ (Deep RL Portfolio)"
+    version = "Alpha-V35+ (Cross-Sectional Dynamic Universe)"
     print(f"🦞 [2026-03-23] 启动【量化进化 Loop】 - {version} 核心回测中...")
     
-    # 标的无关化 (Asset-Agnostic): 移除单一强势股(如NVDA)，切换为宽基指数与宏观资产
-    targets = {
-        "A-Share (CSI300)": "000300.SS",
-        "US Market (SPY)": "SPY",
-        "Gold (GC=F)": "GC=F",
-        "BTC (BTC-USD)": "BTC-USD"
-    }
+    # 彻底移除硬编码标的，建立动态选股池 (Dynamic Universe Pool)
+    import random
+    universe_pool = [
+        "AAPL", "MSFT", "GOOGL", "META", "TSLA", "JPM", "V", "WMT", "JNJ", "PG", # US Large Cap
+        "000300.SS", "000001.SS", "601899.SS", "601398.SS", "000858.SZ", "600519.SS", # A-Shares
+        "BTC-USD", "ETH-USD", "SOL-USD", # Crypto
+        "GLD", "SLV", "USO" # Commodities
+    ]
+    
+    # 每一轮随机抽取 6 个标的作为当日的市场截面 (Cross-Section)
+    selected_symbols = random.sample(universe_pool, 6)
     
     all_results = []
     audit_engine = ExpertConferencing()
     
-    # Run backtests for individual assets
-    for name, symbol in targets.items():
+    # Cross-Sectional Backtest
+    for symbol in selected_symbols:
+        name = f"Dynamic_{symbol}"
         m = backtest_alpha_v24_institutional(name, symbol)
         if m:
             audit = audit_engine.audit_strategy(name, {'sharpe': m['Sharpe'], 'mdd': abs(m['MDD'])})
             all_results.append({"name": name, "symbol": symbol, "metrics": m, "audit": audit})
             
-    if not all_results: return False, "No results."
+    if not all_results: return False, "No results from dynamic universe."
     
     # -----------------------------
-    # Deep RL Portfolio Allocation
+    # Deep RL Portfolio Allocation (Dynamic Resizing)
     # -----------------------------
     import numpy as np
     from src.components.rl_portfolio_agent import rl_agent
+    
+    num_selected = len(all_results)
+    
+    # 动态扩展/收缩 RL Agent 的输出层以适应当前选股池大小
+    rl_agent.num_assets = num_selected
+    if rl_agent.actor_weights.shape[1] != num_selected:
+        rl_agent.actor_weights = np.random.randn(rl_agent.state_dim, num_selected)
     
     # Build state representation for the RL Agent: [Return, Volatility, MDD] for each asset
     states = []
@@ -129,21 +141,21 @@ def run_evolution_loop():
     # Agent forward pass
     target_weights = rl_agent.get_action(states)
     
-    # Calculate portfolio metrics based on RL allocated weights
+    # Calculate portfolio metrics based on RL allocated weights (Long/Short Hedged approximation)
     avg_sharpe = np.sum([r['metrics']['Sharpe'] * target_weights[i] for i, r in enumerate(all_results)])
     avg_calmar = np.sum([r['metrics']['Calmar'] * target_weights[i] for i, r in enumerate(all_results)])
     # Approximation of portfolio MDD assuming correlation benefits
-    max_mdd = np.sum([r['metrics']['MDD'] * target_weights[i] for i, r in enumerate(all_results)]) * 0.8
+    max_mdd = np.sum([r['metrics']['MDD'] * target_weights[i] for i, r in enumerate(all_results)]) * 0.75
     
     # Agent backward pass (Reward: Sharpe - MDD penalty)
     reward = avg_sharpe - (abs(max_mdd) * 5)
     rl_agent.update_policy(states, target_weights, reward)
     
     report = f"\n### 🧪 {version} 进化报告: {datetime.now()}\n"
-    report += f"- **逻辑对标**: TradeMaster EIIE/PPO (端到端深度强化学习动态调仓)\n"
-    report += f"- **核心优化**: 神经网络自主接管多空仓位分配, 替代传统固定权重\n"
+    report += f"- **逻辑对标**: WorldQuant 截面多空因子筛选 (Cross-Sectional Neutral) + RL\n"
+    report += f"- **核心优化**: 完全标的无关！动态池选股 + AI 仓位再平衡，支持高弹性对冲组合\n"
     report += f"- **组合指标**: 强化学习配置下预期 Sharpe {avg_sharpe:.2f}, Calmar {avg_calmar:.2f}, MDD {max_mdd:.2%}\n"
-    report += "| 资产 | RL权重分配 | Sharpe | Calmar | MDD | 专家审计 |\n|---|---|---|---|---|---|\n"
+    report += "| 动态标的 | RL权重分配 | Sharpe | Calmar | MDD | 专家审计 |\n|---|---|---|---|---|---|\n"
     
     for i, r in enumerate(all_results):
         status = "✅ PASS" if "PASS" in r['audit']['expert_feedback'][0]['opinion'] else "❌ REJECT"

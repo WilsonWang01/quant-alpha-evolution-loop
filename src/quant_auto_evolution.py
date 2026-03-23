@@ -10,7 +10,7 @@ from src.logic.expert_conferencing import ExpertConferencing
 from src.components.rl_portfolio_agent import rl_agent
 
 # 策略存储路径
-PRO_LOG = "knowledge/quant_universal_evolution.md"
+PRO_LOG = "/home/ubuntu/.openclaw/workspace/knowledge/quant_universal_evolution.md"
 
 def calculate_professional_metrics(returns):
     if returns.empty: return None

@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 class DeepRLPortfolioAgent:
     """
@@ -9,13 +10,27 @@ class DeepRLPortfolioAgent:
     market states (e.g., recent returns, volatility, momentum), replacing
     static heuristic rules.
     """
-    def __init__(self, num_assets, state_dim=3):
+    def __init__(self, num_assets, state_dim=3, model_path="models/rl_weights.npy"):
         self.num_assets = num_assets
         self.state_dim = state_dim
-        # Simplified Neural Network: Linear layer -> Softmax
-        # In production, this would be a PyTorch nn.Module (e.g., LSTM or Transformer)
-        self.actor_weights = np.random.randn(state_dim, num_assets)
+        self.model_path = os.path.join(os.path.dirname(__file__), "../../", model_path)
+        
+        # Ensure models directory exists
+        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+        
+        if os.path.exists(self.model_path):
+            self.actor_weights = np.load(self.model_path)
+            print(f"✅ RL Agent: Loaded weights from {self.model_path}")
+        else:
+            self.actor_weights = np.random.randn(state_dim, num_assets)
+            print("🆕 RL Agent: Initialized with random weights")
+            
         self.learning_rate = 0.05
+        
+    def save_weights(self):
+        """Persist weights to disk."""
+        np.save(self.model_path, self.actor_weights)
+        print(f"💾 RL Agent: Saved weights to {self.model_path}")
         
     def get_action(self, state):
         """
